@@ -13,6 +13,17 @@ namespace LolLcdApiClient.Services
     {
         private PlayerData? _lastKnownEnemyJungler;
 
+        private static readonly List<(ConsoleColor Background, ConsoleColor Foreground)> _attentionColors =
+        [
+            (ConsoleColor.DarkRed, ConsoleColor.White),
+            (ConsoleColor.DarkBlue, ConsoleColor.Yellow),
+            (ConsoleColor.DarkMagenta, ConsoleColor.Cyan),
+            (ConsoleColor.DarkGreen, ConsoleColor.White),
+            (ConsoleColor.DarkYellow, ConsoleColor.Black)
+        ];
+
+        private static int _colorIndex = 0;
+
         /// <inheritdoc/>
         public async Task StartTrackingAsync()
         {
@@ -75,17 +86,21 @@ namespace LolLcdApiClient.Services
                 return;
             }
 
-            if (currentEnemyJungler.Level > _lastKnownEnemyJungler.Level)
-                ConsoleWriter.PrintLine($"JG Level Up: {_lastKnownEnemyJungler.Level} -> {currentEnemyJungler.Level}", ConsoleColor.Green);
+            var changesToReport = new List<Action>();
 
-            /*if (currentState.Scores.Kills > lastState.Scores.Kills)
-                ConsoleWriter.PrintLine($"JG Kills: {lastState.Scores.Kills} -> {currentState.Scores.Kills}", ConsoleColor.Cyan);
-            if (currentState.Scores.Deaths > lastState.Scores.Deaths)
-                ConsoleWriter.PrintLine($"JG Deaths: {lastState.Scores.Deaths} -> {currentState.Scores.Deaths}", ConsoleColor.Red);
-            if (currentState.Scores.Assists > lastState.Scores.Assists)
-                ConsoleWriter.PrintLine($"JG Assists: {lastState.Scores.Assists} -> {currentState.Scores.Assists}", ConsoleColor.Blue);*/
-            if (currentEnemyJungler.Scores.Assists > _lastKnownEnemyJungler.Scores.CreepScore)
-                ConsoleWriter.PrintLine($"JG Assists: {_lastKnownEnemyJungler.Scores.CreepScore} -> {currentEnemyJungler.Scores.CreepScore}", ConsoleColor.Blue);
+            if (currentEnemyJungler.Level > _lastKnownEnemyJungler.Level)
+            {
+                changesToReport.Add(() =>
+                    ConsoleWriter.PrintLine($"JG Level Up: {_lastKnownEnemyJungler.Level} -> {currentEnemyJungler.Level}", ConsoleColor.Green)
+                );
+            }
+
+            if (currentEnemyJungler.Scores.CreepScore > _lastKnownEnemyJungler.Scores.CreepScore)
+            {
+                changesToReport.Add(() =>
+                    ConsoleWriter.PrintLine($"JG CS: {_lastKnownEnemyJungler.Scores.CreepScore} -> {currentEnemyJungler.Scores.CreepScore}", ConsoleColor.Cyan)
+                );
+            }
 
             var lastItemNames = new HashSet<string>(_lastKnownEnemyJungler.Items.Select(i => i.ItemName));
             var currentItemNames = new HashSet<string>(currentEnemyJungler.Items.Select(i => i.ItemName));
@@ -95,8 +110,24 @@ namespace LolLcdApiClient.Services
                 var newItems = currentItemNames.Except(lastItemNames);
                 foreach (var item in newItems)
                 {
-                    ConsoleWriter.PrintLine($"JG New Item: {item}", ConsoleColor.Yellow);
+                    changesToReport.Add(() =>
+                        ConsoleWriter.PrintLine($"JG New Item: {item}", ConsoleColor.Yellow)
+                    );
                 }
+            }
+
+            if (changesToReport.Count != 0)
+            {
+                var selectedColor = _attentionColors[_colorIndex];
+                _colorIndex = (_colorIndex + 1) % _attentionColors.Count;
+                ConsoleWriter.PrintAttentionHeader("Enemy Jungler Status Updated", selectedColor);
+
+                foreach (var reportAction in changesToReport)
+                {
+                    reportAction.Invoke();
+                }
+
+                Console.WriteLine(new string('-', 40));
             }
         }
     }
