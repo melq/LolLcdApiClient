@@ -1,6 +1,9 @@
-﻿// Program.cs
-using LolLcdApiClient.Services;
+﻿using LolLcdApiClient.Services;
+using LolLcdApiClient.Services.Interfaces;
 using LolLcdApiClient.Util;
+using LolLcdApiClient.Util.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace LolLcdApiClient
 {
@@ -8,14 +11,20 @@ namespace LolLcdApiClient
     {
         public static async Task Main(string[] args)
         {
-            Console.WriteLine("Enemy Jungler Tracker)");
-            Console.WriteLine("=====================================");
+            Console.WriteLine("LoL Companion App (DI-Ready)");
+            Console.WriteLine("==============================");
 
-            var apiService = new LiveClientDataApiClient();
+            var host = Host.CreateDefaultBuilder(args)
+                .ConfigureServices((context, services) =>
+                {
+                    services.AddSingleton<ILiveClientDataApiClient, LiveClientDataApiClient>();
+                    services.AddSingleton<IJungleTrackerService, JungleTrackerService>();
+                    services.AddSingleton<ITeamFightMonitorService, TeamFightMonitorService>();
+                    services.AddHostedService<AppHostService>();
+                })
+                .Build();
 
-            var trackerService = new JungleTrackerService(apiService);
-
-            await trackerService.StartTrackingAsync();
+            await host.RunAsync();
         }
     }
 }

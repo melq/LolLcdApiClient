@@ -2,31 +2,28 @@
 using LolLcdApiClient.Services.Interfaces;
 using LolLcdApiClient.Util;
 using LolLcdApiClient.Util.Interfaces;
-using System.Text.Json;
 
 namespace LolLcdApiClient.Services
 {
     /// <summary>
-    /// <inheritdoc cref="IJungleTrackerService"/>"/>
+    /// <inheritdoc cref="IJungleTrackerService"/>
     /// </summary>
-    /// <param name="liveClientDataApiClient"></param>
+    /// <param name="liveClientDataApiClient"><see cref="ILiveClientDataApiClient"/></param>
     public class JungleTrackerService(ILiveClientDataApiClient liveClientDataApiClient) : IJungleTrackerService
     {
-        private readonly string getPlayerListEndpoint = Const.ApiUrls.playerListApiUrl;
-        private readonly string getActivePlayerEndpoint = Const.ApiUrls.activePlayerApiUrl;
         private PlayerData? _lastKnownEnemyJungler;
 
         /// <inheritdoc/>
         public async Task StartTrackingAsync()
         {
-            ConsoleWriter.PrintLine("ゲームが開始されると、1秒ごとに相手JGの情報を監視します。");
+            ConsoleWriter.PrintLine("相手JGの情報の監視を開始します。");
 
             while (true)
             {
                 try
                 {
-                    var allPlayers = await GetPlayerListAsync();
-                    var activePlayer = await GetActivePlayerAsync();
+                    var allPlayers = await liveClientDataApiClient.GetPlayerListAsync();
+                    var activePlayer = await liveClientDataApiClient.GetActivePlayerAsync();
 
                     if (allPlayers == null || activePlayer == null) continue;
 
@@ -44,15 +41,7 @@ namespace LolLcdApiClient.Services
                         }
                         continue;
                     }
-
-                    if (_lastKnownEnemyJungler == null)
-                    {
-                        ConsoleWriter.PrintLine($"相手JGを検出: {currentEnemyJungler.ChampionName} ({currentEnemyJungler.SummonerName})", ConsoleColor.White);
-                    }
-                    else
-                    {
-                        CompareAndReportChanges(_lastKnownEnemyJungler, currentEnemyJungler);
-                    }
+                    CompareAndReportChanges(currentEnemyJungler);
 
                     _lastKnownEnemyJungler = currentEnemyJungler;
                 }
@@ -67,32 +56,39 @@ namespace LolLcdApiClient.Services
                 }
                 catch (Exception ex)
                 {
-                    ConsoleWriter.PrintErrorLine($"\n予期せぬエラーが発生しました。: {ex.Message}");
+                    ConsoleWriter.PrintErrorLine($"\n[JungleTracker] エラー: {ex.Message}");
                 }
 
                 await Task.Delay(500);
             }
         }
 
-        private void CompareAndReportChanges(PlayerData lastState, PlayerData currentState)
+        /// <summary>
+        /// 敵ジャングラーの状態を前回の状態と比較し、変更があれば出力します。
+        /// </summary>
+        /// <param name="currentEnemyJungler">現在の敵ジャングラー</param>
+        private void CompareAndReportChanges(PlayerData currentEnemyJungler)
         {
-            // レベルの変化
-            if (currentState.Level > lastState.Level)
-                ConsoleWriter.PrintLine($"JG Level Up: {lastState.Level} -> {currentState.Level}", ConsoleColor.Green);
+            if (_lastKnownEnemyJungler == null)
+            {
+                ConsoleWriter.PrintLine($"相手JGを検出: {currentEnemyJungler.ChampionName} ({currentEnemyJungler.SummonerName})", ConsoleColor.White);
+                return;
+            }
 
-            // KDAの変化
+            if (currentEnemyJungler.Level > _lastKnownEnemyJungler.Level)
+                ConsoleWriter.PrintLine($"JG Level Up: {_lastKnownEnemyJungler.Level} -> {currentEnemyJungler.Level}", ConsoleColor.Green);
+
             /*if (currentState.Scores.Kills > lastState.Scores.Kills)
                 ConsoleWriter.PrintLine($"JG Kills: {lastState.Scores.Kills} -> {currentState.Scores.Kills}", ConsoleColor.Cyan);
             if (currentState.Scores.Deaths > lastState.Scores.Deaths)
                 ConsoleWriter.PrintLine($"JG Deaths: {lastState.Scores.Deaths} -> {currentState.Scores.Deaths}", ConsoleColor.Red);
             if (currentState.Scores.Assists > lastState.Scores.Assists)
                 ConsoleWriter.PrintLine($"JG Assists: {lastState.Scores.Assists} -> {currentState.Scores.Assists}", ConsoleColor.Blue);*/
-            if (currentState.Scores.Assists > lastState.Scores.CreepScore)
-                ConsoleWriter.PrintLine($"JG Assists: {lastState.Scores.CreepScore} -> {currentState.Scores.CreepScore}", ConsoleColor.Blue);
+            if (currentEnemyJungler.Scores.Assists > _lastKnownEnemyJungler.Scores.CreepScore)
+                ConsoleWriter.PrintLine($"JG Assists: {_lastKnownEnemyJungler.Scores.CreepScore} -> {currentEnemyJungler.Scores.CreepScore}", ConsoleColor.Blue);
 
-            // アイテムの変化
-            var lastItemNames = new HashSet<string>(lastState.Items.Select(i => i.ItemName));
-            var currentItemNames = new HashSet<string>(currentState.Items.Select(i => i.ItemName));
+            var lastItemNames = new HashSet<string>(_lastKnownEnemyJungler.Items.Select(i => i.ItemName));
+            var currentItemNames = new HashSet<string>(currentEnemyJungler.Items.Select(i => i.ItemName));
 
             if (!currentItemNames.SetEquals(lastItemNames))
             {
@@ -102,18 +98,6 @@ namespace LolLcdApiClient.Services
                     ConsoleWriter.PrintLine($"JG New Item: {item}", ConsoleColor.Yellow);
                 }
             }
-        }
-
-        private async Task<List<PlayerData>> GetPlayerListAsync()
-        {
-            var json = await liveClientDataApiClient.GetStringAsync(getPlayerListEndpoint);
-            return JsonSerializer.Deserialize<List<PlayerData>>(json) ?? [];
-        }
-
-        private async Task<ActivePlayer> GetActivePlayerAsync()
-        {
-            var json = await liveClientDataApiClient.GetStringAsync(getActivePlayerEndpoint);
-            return JsonSerializer.Deserialize<ActivePlayer>(json) ?? new ActivePlayer();
         }
     }
 }
