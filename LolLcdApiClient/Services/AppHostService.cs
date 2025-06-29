@@ -9,7 +9,7 @@ namespace LolLcdApiClient.Services
     /// </summary>
     /// <param name="jungleTracker"><see cref="IJungleTrackerService"/></param>
     /// <param name="teamFightMonitor"><see cref="ITeamFightMonitorService"/></param>
-    public class AppHostService(IJungleTrackerService jungleTracker, ITeamFightMonitorService teamFightMonitor) : IHostedService
+    public class AppHostService(IJungleTrackerService jungleTracker) : IHostedService
     {
         /// <inheritdoc/>
         public Task StartAsync(CancellationToken cancellationToken)
@@ -17,7 +17,6 @@ namespace LolLcdApiClient.Services
             ConsoleWriter.PrintLine("ホストサービスを開始します。各サービスを起動...", ConsoleColor.Green);
 
             _ = jungleTracker.StartTrackingAsync();
-            _ = teamFightMonitor.StartMonitoringAsync();
 
             return Task.CompletedTask;
         }

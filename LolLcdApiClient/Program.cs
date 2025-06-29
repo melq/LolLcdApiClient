@@ -19,7 +19,6 @@ namespace LolLcdApiClient
                 {
                     services.AddSingleton<ILiveClientDataApiClient, LiveClientDataApiClient>();
                     services.AddSingleton<IJungleTrackerService, JungleTrackerService>();
-                    services.AddSingleton<ITeamFightMonitorService, TeamFightMonitorService>();
                     services.AddHostedService<AppHostService>();
                 })
                 .Build();
