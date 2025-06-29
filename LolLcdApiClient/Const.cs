@@ -10,6 +10,9 @@
         /// </summary>
         public class ApiUrls
         {
+            /// <summary>
+            /// ベースとなるURL
+            /// </summary>
             public const string baseUrl = "https://127.0.0.1:2999/liveclientdata/";
 
             /// <summary>

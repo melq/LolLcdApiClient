@@ -3,6 +3,10 @@ using System.Text.Json.Serialization;
 
 namespace LolLcdApiClient.Converters
 {
+    /// <summary>
+    /// リストをカスタム変換するためのJsonConverter
+    /// </summary>
+    /// <typeparam name="T">変換するリストの型引数</typeparam>
     public class CustomListConverter<T> : JsonConverter<List<T>>
     {
         public override List<T> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

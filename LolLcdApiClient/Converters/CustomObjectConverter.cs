@@ -3,6 +3,10 @@ using System.Text.Json.Serialization;
 
 namespace LolLcdApiClient.Converters
 {
+    /// <summary>
+    /// オブジェクトをカスタム変換するためのJsonConverter
+    /// </summary>
+    /// <typeparam name="T">変換するオブジェクトの型</typeparam>
     public class CustomObjectConverter<T> : JsonConverter<T> where T : new()
     {
         public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
