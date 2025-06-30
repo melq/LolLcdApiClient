@@ -5,7 +5,6 @@
     /// </summary>
     public static class ConsoleWriter
     {
-        private static int _colorIndex = 0;
         /// <summary>
         /// 改行なしでメッセージを出力します。
         /// </summary>

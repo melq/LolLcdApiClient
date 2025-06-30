@@ -11,7 +11,7 @@ namespace LolLcdApiClient
     {
         public static async Task Main(string[] args)
         {
-            Console.WriteLine("LoL Companion App (DI-Ready)");
+            Console.WriteLine("LoL Companion App");
             Console.WriteLine("==============================");
 
             var host = Host.CreateDefaultBuilder(args)
